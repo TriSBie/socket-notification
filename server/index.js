@@ -5,14 +5,18 @@ import http from "http";
 const server = http.createServer();
 const app = express();
 
-app.get("/", (req, res) => {
-    res.send("<h1>Hello world</h1>")
-})
-
 let onlineUsers = [];
 
 const addNewUser = (username, socketId) => {
     !onlineUsers.some(user => user.username === username) && onlineUsers.push({ username, socketId })
+}
+
+const removeUser = (socketId) => {
+    onlineUsers = onlineUsers.filter((user) => user.socketId !== socketId);
+}
+
+const getUser = (username) => {
+    return onlineUsers.find((user) => user.username === username);
 }
 
 const io = new Server(server, {
@@ -22,12 +26,33 @@ const io = new Server(server, {
 })
 
 io.on("connection", (socket) => {
-    console.log("Some one has logged")
-    socket.emit("message", "hello world");
+    console.log({ onlineUsers });
+    socket.on("connection", () => {
+        console.log("User connected");
+    })
+
+    socket.on("newUser", (username) => {
+        if (username) {
+            addNewUser(username, socket.id)
+        }
+    })
+
+    socket.on("sendNotification", ({ senderName, receiverName, type }) => {
+        const receiver = getUser(receiverName);
+        console.log({ receiver });
+        io.to(receiver.socketId).emit("getNotification", {
+            senderName,
+            type
+        })
+    })
+
+    socket.on("getUser", (username) => {
+        getUser(username)
+    })
+
     socket.on("disconnect", () => {
-        console.log("Someone has left")
+        removeUser(socket.id)
     })
 })
 
 server.listen(3000); // server address
-

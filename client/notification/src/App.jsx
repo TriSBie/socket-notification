@@ -5,34 +5,30 @@ import Card from './components/card';
 import { posts } from "./data"
 import { io } from "socket.io-client"
 
+const URL = "http://localhost:3000";
+
 function App() {
   const [username, setUsername] = useState("");
   const [user, setUser] = useState("");
+  const [socket, setSocket] = useState(null);
+
+  console.log({ socket });
+  useEffect(() => {
+    setSocket(io(URL));
+  }, [])
 
   useEffect(() => {
-    const URL = "http://localhost:3000";
-    const socket = io(URL);
-    socket.connect();
-    socket.on("message", (arg) => {
-      console.log(arg)
-    })
-    console.log({ socket });
-
-    socket.on("connect_error", (err) => {
-      console.log(`connect_error due to ${err.message}`);
-    });
-
-  }, [])
+    socket?.emit("newUser", user)
+  }, [socket, user])
 
   return (
     <div className="container">
-
       {user ? (
         <>
-          <Navbar />
+          <Navbar socket={socket} />
           {posts.map((post) => {
             return (
-              <Card key={post.id} post={post} socket={null} user={user} />
+              <Card key={post.id} post={post} socket={socket} user={user} />
             )
           })}
           <span className='username'>{username}</span>
